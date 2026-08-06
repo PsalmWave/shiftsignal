@@ -9,6 +9,12 @@ handoffs, all in one place with a timestamped activity trail.
 It was designed and built by **Samuel Garcia, RN / Psalm Wave LLC**, drawing on bedside nursing
 experience to translate an operational workflow problem into working software.
 
+**Live demo → [shiftsignal-ten.vercel.app](https://shiftsignal-ten.vercel.app)**
+
+The demo runs entirely in your browser. Everything you change is stored in `localStorage` on your own
+device only — nothing is sent anywhere — and **Reset demo data** in the command bar restores the
+original seeded dataset at any time.
+
 ---
 
 ## ⚠️ Demo and safety disclaimers
