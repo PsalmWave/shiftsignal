@@ -1,0 +1,193 @@
+/* ============================================================================
+ * ShiftSignal design tokens — "operations console".
+ *
+ * Deep graphite shell, slate panels, and a mint signal accent, with warm
+ * off-white document surfaces reserved for reading-heavy content (the handoff
+ * brief and the case study). Status colour follows operational meaning:
+ * mint = done, amber = waiting on someone, coral = stuck or late.
+ * ========================================================================== */
+
+:root {
+  /* -- Shell ------------------------------------------------------------- */
+  --void: #0a0e13;
+  --rail: #0d131a;
+  --canvas: #0f151c;
+
+  /* -- Panels ------------------------------------------------------------ */
+  --panel: #151d26;
+  --panel-raised: #1a232e;
+  --panel-sunken: #0c1219;
+  --panel-hover: #1f2a36;
+
+  /* -- Document surfaces (warm off-white) -------------------------------- */
+  --doc: #f5f2ec;
+  --doc-alt: #ebe6dc;
+  --doc-ink: #1a222b;
+  --doc-ink-muted: #5d6b78;
+  --doc-line: #d8d1c2;
+
+  /* -- Lines ------------------------------------------------------------- */
+  --line: #223040;
+  --line-soft: #1a2431;
+  --line-strong: #33475a;
+
+  /* -- Text ---------------------------------------------------------------
+   * The faintest step still carries real 9-12px labels (timestamps, counts,
+   * rail captions), so it is held at 4.6:1 on `--panel` rather than being
+   * dimmed to the point where it only looks decorative. */
+  --ink: #e6edf3;
+  --ink-secondary: #a8bac9;
+  --ink-muted: #7d92a4;
+  --ink-faint: #71889b;
+
+  /* -- Signal (primary operational accent) ------------------------------- */
+  --signal: #35dfad;
+  --signal-bright: #5cf0c3;
+  /* Reads as text on the warm `--doc` paper stock (5.4:1) as well as forming
+     the dark end of the progress and meter gradients on the console side. */
+  --signal-deep: #0a7055;
+  --signal-wash: rgba(53, 223, 173, 0.12);
+  --signal-edge: rgba(53, 223, 173, 0.34);
+  --signal-ring: rgba(53, 223, 173, 0.45);
+
+  /* -- Status ------------------------------------------------------------ */
+  --amber: #f0b429;
+  --amber-wash: rgba(240, 180, 41, 0.13);
+  --amber-edge: rgba(240, 180, 41, 0.34);
+
+  --coral: #f2705f;
+  --coral-wash: rgba(242, 112, 95, 0.13);
+  --coral-edge: rgba(242, 112, 95, 0.34);
+
+  --azure: #4fa8f5;
+  --azure-wash: rgba(79, 168, 245, 0.13);
+  --azure-edge: rgba(79, 168, 245, 0.32);
+
+  --cyan: #3fc9d6;
+  --cyan-wash: rgba(63, 201, 214, 0.13);
+  --cyan-edge: rgba(63, 201, 214, 0.32);
+
+  --steel: #90a6b8;
+  --steel-wash: rgba(144, 166, 184, 0.11);
+  --steel-edge: rgba(144, 166, 184, 0.26);
+
+  /* -- Semantic tone triplets (fg / bg / border) consumed by Badge etc. --- */
+  --tone-neutral-fg: #a9bccc;
+  --tone-neutral-bg: var(--steel-wash);
+  --tone-neutral-bd: var(--steel-edge);
+
+  --tone-info-fg: #6fdbe6;
+  --tone-info-bg: var(--cyan-wash);
+  --tone-info-bd: var(--cyan-edge);
+
+  --tone-progress-fg: #7cc0fa;
+  --tone-progress-bg: var(--azure-wash);
+  --tone-progress-bd: var(--azure-edge);
+
+  /* warn == blocked / overdue / high priority */
+  --tone-warn-fg: #ff9382;
+  --tone-warn-bg: var(--coral-wash);
+  --tone-warn-bd: var(--coral-edge);
+
+  /* accent == waiting on someone (awaiting handoff, ready) */
+  --tone-accent-fg: #f7c860;
+  --tone-accent-bg: var(--amber-wash);
+  --tone-accent-bd: var(--amber-edge);
+
+  --tone-success-fg: var(--signal-bright);
+  --tone-success-bg: var(--signal-wash);
+  --tone-success-bd: var(--signal-edge);
+
+  --danger: #ff8574;
+  --danger-bg: rgba(242, 112, 95, 0.14);
+  --danger-bd: rgba(242, 112, 95, 0.4);
+
+  /* -- Team accents (distinct hues that survive the dark shell) ---------- */
+  --accent-0: #35dfad;
+  --accent-1: #4fa8f5;
+  --accent-2: #b98cf7;
+  --accent-3: #f0b429;
+  --accent-4: #3fc9d6;
+  --accent-5: #f2705f;
+
+  /* -- Geometry: squarer than a consumer SaaS shell ---------------------- */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-pill: 999px;
+
+  /* -- Spacing ----------------------------------------------------------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 56px;
+
+  /* -- Elevation: depth comes from contrast + hairlines, not soft shadow -- */
+  --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --glow-signal: 0 0 0 1px var(--signal-edge), 0 0 20px -6px var(--signal);
+
+  /* -- Type -------------------------------------------------------------- */
+  --font-sans:
+    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  /* Numerals, clocks, counters, IDs and status codes all run monospace —
+     the strongest available "instrumentation" signal without a web font. */
+  --font-mono:
+    ui-monospace, 'SF Mono', 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Roboto Mono', Menlo,
+    monospace;
+
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.9375rem;
+
+  /* Uppercase micro-labels are the workhorse of the operational look. */
+  --track-label: 0.13em;
+  --track-tight: -0.015em;
+
+  /* -- Motion ------------------------------------------------------------ */
+  --ease: cubic-bezier(0.2, 0.7, 0.15, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 110ms;
+  --duration: 190ms;
+  --duration-slow: 300ms;
+
+  /* -- Layout ------------------------------------------------------------ */
+  --rail-width: 88px;
+  --commandbar-height: 60px;
+  --statusstrip-height: 40px;
+  --mobilenav-height: 62px;
+  --content-max: 1500px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration: 0ms;
+    --duration-slow: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

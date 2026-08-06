@@ -1,0 +1,1990 @@
+/* ============================================================================
+ * Route-specific composition.
+ *
+ * Each surface has its own operational metaphor: the shift board is a timeline,
+ * tasks are lanes, the handoff is a composed brief on paper stock, checklists
+ * and templates are step tracks, and activity is a ledger.
+ * ========================================================================== */
+
+/* -- Shared grids ---------------------------------------------------------- */
+
+/* Every auto-placed track below wraps its floor in `min(..., 100%)`. Without
+   it a track whose minimum exceeds the container keeps that minimum and pushes
+   the page wider than the viewport, which is how narrow-screen overflow starts. */
+.grid-2 {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+}
+
+.grid-sidebar {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+  align-items: start;
+}
+
+/* Variant for pages whose narrow column comes first (the handoff record list).
+   Must stay a class rather than an inline style, or it would outrank the
+   single-column override below and force the page wider than the viewport. */
+.grid-sidebar-lead {
+  grid-template-columns: minmax(250px, 320px) minmax(0, 1fr);
+}
+
+@media (max-width: 1023px) {
+  .grid-sidebar,
+  .grid-sidebar-lead {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Tone helpers for instrument values. */
+.tone-success {
+  color: var(--signal);
+}
+.tone-warn {
+  color: var(--coral);
+}
+.tone-accent {
+  color: var(--amber);
+}
+.tone-progress {
+  color: var(--azure);
+}
+
+/* ==========================================================================
+ * Shift overview — live command board
+ * ======================================================================== */
+
+.shift-hero {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(53, 223, 173, 0.05), transparent 40%),
+    var(--panel);
+  overflow: hidden;
+}
+
+.shift-hero-top {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-5);
+}
+
+.shift-hero-meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-top: var(--space-1);
+}
+
+/* Shift timeline: hour ticks with an elapsed fill and a "now" marker. */
+.shift-timeline {
+  padding: 0 var(--space-5) var(--space-5);
+}
+
+.timeline-track {
+  position: relative;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background: repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent calc(8.333% - 1px),
+      var(--line) calc(8.333% - 1px),
+      var(--line) 8.333%
+    ),
+    var(--panel-sunken);
+  overflow: hidden;
+}
+
+.timeline-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, rgba(53, 223, 173, 0.28), rgba(53, 223, 173, 0.1));
+  border-right: 1px solid var(--signal);
+  transition: width var(--duration-slow) var(--ease-out);
+}
+
+.timeline-now {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--signal);
+  box-shadow: 0 0 10px var(--signal);
+  transform: translateX(-1px);
+}
+
+.timeline-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+}
+
+/* Status ribbon — one strip of instrument readings, divided by hairlines. */
+.shift-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  background: var(--panel-sunken);
+}
+
+.hero-stat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-4) var(--space-4);
+  border-right: 1px solid var(--line);
+  min-width: 0;
+}
+
+.hero-stat:last-child {
+  border-right: 0;
+}
+
+.hero-stat-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.hero-stat-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+@media (max-width: 900px) {
+  .shift-hero-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero-stat {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .hero-stat:nth-child(2n) {
+    border-right: 0;
+  }
+}
+
+/* Compact event stream used inside overview panels. */
+.pulse-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.pulse-item {
+  display: grid;
+  grid-template-columns: 21px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.pulse-item:first-child {
+  padding-top: 0;
+}
+
+.pulse-item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.pulse-time {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+  margin-top: 2px;
+}
+
+/* Roster ------------------------------------------------------------------- */
+
+.roster-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.roster-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.roster-item:last-child {
+  border-bottom: 0;
+}
+
+.roster-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.roster-role {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.roster-load {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+ * Task board — operational lanes
+ * ======================================================================== */
+
+.board {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(268px, 1fr);
+  gap: var(--space-3);
+  overflow-x: auto;
+  padding-bottom: var(--space-3);
+}
+
+.board-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--panel-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.board-column-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--line);
+  border-top: 2px solid var(--steel);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: var(--panel);
+}
+
+/* Each lane is topped by its own status colour. */
+.board-column[data-status='in-progress'] .board-column-header {
+  border-top-color: var(--azure);
+}
+.board-column[data-status='blocked'] .board-column-header {
+  border-top-color: var(--coral);
+}
+.board-column[data-status='awaiting-handoff'] .board-column-header {
+  border-top-color: var(--amber);
+}
+.board-column[data-status='complete'] .board-column-header {
+  border-top-color: var(--signal);
+}
+
+/* One restrained square marker per lane, matching the lane's top border. */
+.board-column-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 1px;
+  background: var(--steel);
+}
+
+.board-column[data-status='in-progress'] .board-column-dot {
+  background: var(--azure);
+}
+.board-column[data-status='blocked'] .board-column-dot {
+  background: var(--coral);
+}
+.board-column[data-status='awaiting-handoff'] .board-column-dot {
+  background: var(--amber);
+}
+.board-column[data-status='complete'] .board-column-dot {
+  background: var(--signal);
+}
+
+.board-column-title {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+
+.board-column-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+  padding: 1px var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+}
+
+.board-column-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  min-height: 80px;
+}
+
+.board-empty {
+  padding: var(--space-5) var(--space-3);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Task record — left stripe carries priority, everything else stays quiet. */
+.task-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3);
+  padding-left: var(--space-4);
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease),
+    background var(--duration-fast) var(--ease),
+    transform var(--duration-fast) var(--ease);
+}
+
+.task-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  background: var(--steel);
+}
+
+.task-card:hover {
+  background: var(--panel-raised);
+  border-color: var(--line-strong);
+  transform: translateX(1px);
+}
+
+.task-card.priority-low::before {
+  background: var(--ink-faint);
+}
+.task-card.priority-normal::before {
+  background: var(--cyan);
+}
+.task-card.priority-high::before {
+  background: var(--coral);
+}
+
+.task-card-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.task-card.is-complete .task-card-title {
+  text-decoration: line-through;
+  color: var(--ink-muted);
+}
+
+.task-card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+}
+
+/* Markers sit below the title: the record reads title-first, like a work order. */
+.task-card-markers {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding-top: var(--space-1);
+  border-top: 1px solid var(--line-soft);
+}
+
+.task-due {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.task-due.is-overdue {
+  color: var(--coral);
+  font-weight: 600;
+}
+
+/* Result strip above the queue — a readout, not a paragraph. */
+.status-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--signal);
+  border-radius: var(--radius-md);
+  background: var(--panel-sunken);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.status-strip strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Filter bar --------------------------------------------------------------- */
+
+.filter-bar {
+  display: grid;
+  grid-template-columns: minmax(min(180px, 100%), 1.4fr) repeat(auto-fit, minmax(min(128px, 100%), 1fr));
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+@media (max-width: 720px) {
+  .filter-bar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ==========================================================================
+ * Handoff — the composed shift brief
+ * ======================================================================== */
+
+.handoff-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.handoff-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease);
+}
+
+.handoff-item:hover {
+  background: var(--panel-raised);
+}
+
+.handoff-item.is-selected {
+  background: var(--signal-wash);
+}
+
+.handoff-item.is-selected::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--signal);
+}
+
+.handoff-item-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* Guided composition workspace: section rail beside the writing surface. */
+.compose-grid {
+  display: grid;
+  grid-template-columns: 186px minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.compose-rail {
+  position: sticky;
+  top: calc(var(--commandbar-height) + var(--space-4));
+  padding: var(--space-3) 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel-sunken);
+}
+
+.compose-rail-title {
+  padding: 0 var(--space-3) var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.compose-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--line);
+  background: var(--panel-sunken);
+}
+
+@media (max-width: 900px) {
+  .compose-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .compose-rail {
+    position: static;
+  }
+}
+
+/* Section rail: numbered composition steps down the left of the builder. */
+.handoff-rail {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.handoff-rail-item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+}
+
+/* Connector line joining the section nodes. */
+.handoff-rail-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--space-3) + 9px);
+  top: 26px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--line);
+}
+
+.handoff-rail-node {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 19px;
+  height: 19px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--panel-sunken);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink-faint);
+}
+
+/* Completed sections should read as *more* present, so the shared dimming
+   treatment for `.is-complete` is deliberately cancelled on the rail. */
+.handoff-rail-item.is-complete {
+  opacity: 1;
+  color: var(--ink-secondary);
+}
+
+.handoff-rail-item.is-complete .handoff-rail-node {
+  border-color: var(--signal);
+  background: var(--signal-wash);
+  color: var(--signal);
+}
+
+.handoff-rail-item.is-required .handoff-rail-node {
+  border-color: var(--amber-edge);
+  color: var(--amber);
+}
+
+.handoff-rail-item.is-required.is-complete .handoff-rail-node {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.handoff-rail-label {
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.handoff-rail-state {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.handoff-rail-item.is-complete .handoff-rail-state {
+  color: var(--signal);
+}
+
+.handoff-rail-item.is-required:not(.is-complete) .handoff-rail-state {
+  color: var(--amber);
+}
+
+.handoff-section {
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.handoff-section:last-child {
+  border-bottom: 0;
+}
+
+.handoff-section-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.handoff-section-head > .eyebrow {
+  margin-left: auto;
+}
+
+.handoff-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 640;
+  color: var(--ink);
+}
+
+.handoff-section-title .step-index {
+  flex: none;
+}
+
+.linked-task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel-sunken);
+}
+
+.linked-task-row + .linked-task-row {
+  margin-top: var(--space-2);
+}
+
+/* -- Preview: a printed brief on warm stock -------------------------------- */
+
+.preview-doc {
+  background: var(--doc);
+  color: var(--doc-ink);
+  border: 1px solid var(--doc-line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-7);
+  box-shadow: var(--shadow-md);
+}
+
+.preview-doc .preview-masthead {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
+  border-bottom: 2px solid var(--doc-ink);
+}
+
+.preview-doc .preview-masthead-mark {
+  color: var(--signal-deep);
+  flex: none;
+}
+
+.preview-doc h3,
+.preview-doc .preview-doc-title {
+  color: var(--doc-ink);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: var(--track-tight);
+}
+
+.preview-doc .preview-doc-meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--doc-ink-muted);
+  margin-top: 2px;
+}
+
+.preview-block {
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--doc-line);
+}
+
+.preview-block:last-child {
+  border-bottom: 0;
+}
+
+.preview-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--signal-deep);
+  margin-bottom: var(--space-2);
+}
+
+.preview-heading::before {
+  content: '';
+  width: 12px;
+  height: 2px;
+  background: var(--signal-deep);
+  flex: none;
+}
+
+.preview-body {
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  color: var(--doc-ink);
+  white-space: pre-wrap;
+}
+
+.preview-body.is-empty {
+  color: var(--doc-ink-muted);
+  font-style: italic;
+}
+
+.preview-step-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.preview-step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--doc-ink);
+}
+
+.preview-doc .step-index {
+  border-color: var(--doc-line);
+  background: var(--doc-alt);
+  color: var(--doc-ink-muted);
+}
+
+.preview-doc .case-chip {
+  border-color: var(--doc-line);
+  background: var(--doc-alt);
+  color: var(--doc-ink-muted);
+}
+
+.preview-doc-footer {
+  margin-top: var(--space-5);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--doc-line);
+  font-size: var(--text-2xs);
+  line-height: 1.6;
+  color: var(--doc-ink-muted);
+}
+
+@media (max-width: 640px) {
+  .preview-doc {
+    padding: var(--space-5) var(--space-4);
+  }
+}
+
+/* ==========================================================================
+ * Checklists & templates — step tracks
+ * ======================================================================== */
+
+.checklist-grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr));
+}
+
+/* Procedure entry: a status rail, the run's identity, and its step track —
+   deliberately not a rounded content card. */
+.checklist-row {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  transition:
+    border-color var(--duration-fast) var(--ease),
+    background var(--duration-fast) var(--ease);
+}
+
+.checklist-row:hover {
+  border-color: var(--line-strong);
+  background: var(--panel-raised);
+}
+
+.checklist-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  background: var(--azure);
+}
+
+.checklist-row[data-status='complete']::before {
+  background: var(--signal);
+}
+
+.checklist-row[data-status='archived']::before {
+  background: var(--ink-faint);
+}
+
+.checklist-row-top {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.checklist-row-title {
+  font-size: var(--text-md);
+  font-weight: 640;
+  letter-spacing: var(--track-tight);
+  line-height: 1.35;
+}
+
+.checklist-row-title a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.checklist-row-title a:hover {
+  color: var(--signal);
+}
+
+.checklist-row-meta {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.checklist-row-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line-soft);
+}
+
+/* Numbered node used on every step track. */
+.step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--panel-sunken);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+
+.checklist-steps {
+  list-style: none;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.checklist-step {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--line-soft);
+  transition: background var(--duration-fast) var(--ease);
+}
+
+.checklist-step:last-child {
+  border-bottom: 0;
+}
+
+/* Track line connecting each step node (the node is the first child). */
+.checklist-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--space-5) + 11px);
+  top: 42px;
+  bottom: -1px;
+  width: 1px;
+  background: var(--line);
+}
+
+.checklist-step:hover {
+  background: var(--panel-raised);
+}
+
+.checklist-step.is-complete {
+  opacity: 1;
+}
+
+.checklist-step.is-complete .step-index {
+  border-color: var(--signal-edge);
+  background: var(--signal-wash);
+  color: var(--signal);
+}
+
+/* The first step still outstanding is the one the team is working on. */
+.checklist-step.is-current {
+  background: linear-gradient(90deg, var(--signal-wash), transparent 55%);
+}
+
+.checklist-step.is-current::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--signal);
+}
+
+.checklist-step.is-current .step-index {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.checklist-step-current-flag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--signal);
+}
+
+.checklist-step.is-complete .checklist-step-label {
+  color: var(--ink-muted);
+  text-decoration: line-through;
+}
+
+.checklist-step.is-complete::after {
+  background: var(--signal-edge);
+}
+
+.checklist-step-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.checklist-step-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.checklist-step-hint {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  line-height: 1.5;
+}
+
+.checklist-step-controls {
+  display: grid;
+  grid-template-columns: minmax(140px, 190px) minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .checklist-step {
+    padding: var(--space-3);
+  }
+
+  .checklist-step:not(:last-child)::after {
+    left: calc(var(--space-3) + 11px);
+  }
+
+  .checklist-step-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Templates ---------------------------------------------------------------- */
+
+.template-grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+}
+
+/* Blueprint entry: drafting-paper ground, technical header, step sample. */
+.template-row {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(var(--line-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px), var(--panel);
+  background-size:
+    26px 26px,
+    26px 26px;
+  transition:
+    border-top-color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease);
+}
+
+.template-row:hover {
+  border-color: var(--line-strong);
+  border-top-color: var(--signal);
+}
+
+.template-row-title {
+  font-size: var(--text-md);
+  font-weight: 640;
+  letter-spacing: var(--track-tight);
+}
+
+.template-row-title a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.template-row-title a:hover {
+  color: var(--signal);
+}
+
+.template-row-kind {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* Compact sample of the procedure, shown as a numbered track. */
+.template-sample {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel-sunken);
+}
+
+.template-sample li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  min-width: 0;
+}
+
+.template-sample li > span:first-child {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--signal);
+  flex: none;
+}
+
+/* Live preview column of the editor: a drafting grid, distinct from the
+   panel the steps are edited in. */
+.blueprint-preview {
+  background:
+    linear-gradient(var(--line-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px), var(--panel-sunken);
+  background-size:
+    22px 22px,
+    22px 22px;
+}
+
+.blueprint-preview .preview-step {
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--signal-edge);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--ink);
+}
+
+.sticky-panel {
+  position: sticky;
+  top: calc(var(--commandbar-height) + var(--space-4));
+}
+
+@media (max-width: 1023px) {
+  .sticky-panel {
+    position: static;
+  }
+}
+
+.template-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Blueprint row: index, label, controls — reads like a procedure spec. */
+.template-step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line-soft);
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 3px,
+    rgba(144, 166, 184, 0.02) 3px,
+    rgba(144, 166, 184, 0.02) 4px
+  );
+}
+
+.template-step-row:last-child {
+  border-bottom: 0;
+}
+
+.template-step-row.is-disabled {
+  opacity: 0.5;
+}
+
+.template-step-row.is-disabled .template-step-label {
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-faint);
+}
+
+.template-step-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.template-step-hint {
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+.template-step-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: auto;
+  flex: none;
+}
+
+@media (max-width: 640px) {
+  .template-step-row {
+    flex-wrap: wrap;
+  }
+
+  .template-step-actions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* ==========================================================================
+ * Activity — event ledger
+ * ======================================================================== */
+
+.activity-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ledger day divider. Deliberately not sticky: the list lives inside a
+   clipped panel, where sticky would pin to the panel rather than the page. */
+.activity-day {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-5);
+  background: var(--panel-sunken);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+
+.activity-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 66px 22px minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.activity-item:last-child {
+  border-bottom: 0;
+}
+
+.activity-item:hover {
+  background: var(--panel-raised);
+}
+
+/* Ledger rail behind the markers. */
+.activity-item::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--space-5) + 66px + var(--space-3) + 10px);
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--line);
+}
+
+.activity-item:first-child::before {
+  top: var(--space-4);
+}
+
+.activity-item:last-child::before {
+  bottom: calc(100% - var(--space-5));
+}
+
+.activity-time {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+  padding-top: 3px;
+  text-align: right;
+}
+
+.activity-marker {
+  position: relative;
+  z-index: 1;
+  width: 21px;
+  height: 21px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  color: var(--ink-muted);
+  flex: none;
+}
+
+.activity-marker.tone-success {
+  border-color: var(--signal-edge);
+  color: var(--signal);
+  background: var(--signal-wash);
+}
+.activity-marker.tone-warn {
+  border-color: var(--coral-edge);
+  color: var(--coral);
+  background: var(--coral-wash);
+}
+.activity-marker.tone-accent {
+  border-color: var(--amber-edge);
+  color: var(--amber);
+  background: var(--amber-wash);
+}
+.activity-marker.tone-progress {
+  border-color: var(--azure-edge);
+  color: var(--azure);
+  background: var(--azure-wash);
+}
+
+.activity-summary {
+  font-size: var(--text-sm);
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.activity-detail {
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  line-height: 1.5;
+}
+
+.activity-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+}
+
+/* Hairline separators between ledger metadata fields. */
+.activity-meta > span + span::before {
+  content: '·';
+  margin-right: var(--space-2);
+  color: var(--line-strong);
+}
+
+.activity-meta .eyebrow {
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background: var(--panel-sunken);
+  color: var(--ink-muted);
+  font-size: 9px;
+}
+
+@media (max-width: 640px) {
+  .activity-item {
+    grid-template-columns: 22px minmax(0, 1fr);
+    padding: var(--space-3);
+  }
+
+  .activity-item::before {
+    left: calc(var(--space-3) + 10px);
+  }
+
+  .activity-time {
+    grid-column: 2;
+    text-align: left;
+    padding-top: 0;
+    order: 3;
+  }
+}
+
+/* ==========================================================================
+ * Team — shift allocation board
+ * ======================================================================== */
+
+.alloc-grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(min(238px, 100%), 1fr));
+}
+
+.alloc-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel-sunken);
+}
+
+.alloc-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.alloc-name {
+  font-size: var(--text-sm);
+  font-weight: 620;
+  color: var(--ink);
+}
+
+.alloc-focus {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* Four-cell allocation readout beneath each person's bar. */
+.alloc-counts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+}
+
+.alloc-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: var(--space-2) 2px;
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.alloc-cell:last-child {
+  border-right: 0;
+}
+
+.alloc-cell-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.alloc-cell-label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.alloc-cell.is-alert .alloc-cell-value {
+  color: var(--coral);
+}
+
+.alloc-cell.is-wait .alloc-cell-value {
+  color: var(--amber);
+}
+
+.alloc-cell.is-done .alloc-cell-value {
+  color: var(--signal);
+}
+
+/* ==========================================================================
+ * Notes & detail lists
+ * ======================================================================== */
+
+.note-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.note {
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel-sunken);
+}
+
+.note-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.note-author {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink-secondary);
+}
+
+.note-body {
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--ink-secondary);
+  white-space: pre-wrap;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(96px, auto) minmax(0, 1fr);
+  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+}
+
+.detail-term {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.detail-value {
+  font-size: var(--text-sm);
+  color: var(--ink);
+  min-width: 0;
+}
+
+/* ==========================================================================
+ * Case study — concept dossier
+ * ======================================================================== */
+
+.case-study {
+  max-width: 1080px;
+}
+
+.case-hero {
+  position: relative;
+  padding: var(--space-8) var(--space-7);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(700px 260px at 15% 0%, rgba(53, 223, 173, 0.12), transparent 65%),
+    linear-gradient(180deg, var(--panel-raised), var(--panel));
+  overflow: hidden;
+}
+
+/* Faint signal grid in the dossier header. */
+.case-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(var(--line-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+  background-size: 44px 44px;
+  opacity: 0.5;
+  pointer-events: none;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.6), transparent 70%);
+}
+
+.case-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.concept-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 3px var(--space-3);
+  border: 1px solid var(--amber-edge);
+  border-radius: var(--radius-sm);
+  background: var(--amber-wash);
+  color: var(--amber);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+.case-hero h1 {
+  font-size: var(--text-3xl);
+  letter-spacing: -0.025em;
+  max-width: 22ch;
+}
+
+.case-hero p {
+  margin-top: var(--space-4);
+  max-width: 68ch;
+  font-size: var(--text-md);
+  line-height: 1.65;
+  color: var(--ink-secondary);
+}
+
+/* Specification strip under the dossier title. */
+.case-spec {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: var(--space-6);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(12, 18, 25, 0.55);
+  overflow: hidden;
+}
+
+.case-spec-cell {
+  flex: 1 1 150px;
+  padding: var(--space-3) var(--space-4);
+  border-right: 1px solid var(--line);
+  min-width: 0;
+}
+
+.case-spec-cell:last-child {
+  border-right: 0;
+}
+
+.case-spec-key {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.case-spec-val {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Narrative set on paper stock — the same surface as the handoff brief. */
+.case-doc {
+  padding: var(--space-6);
+  border: 1px solid var(--doc-line);
+  border-left: 3px solid var(--signal-deep);
+  border-radius: var(--radius-sm);
+  background: var(--doc);
+  color: var(--doc-ink);
+}
+
+.case-doc p {
+  max-width: 70ch;
+  color: var(--doc-ink);
+  line-height: 1.75;
+}
+
+.case-doc .eyebrow {
+  color: var(--signal-deep);
+}
+
+/* Design-decision ledger. */
+.decision-list {
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr));
+}
+
+.decision-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--signal-edge);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--ink-muted);
+}
+
+.decision-num {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--signal);
+  padding-top: 2px;
+}
+
+.decision-item strong {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--ink);
+  font-weight: 640;
+}
+
+.case-section {
+  position: relative;
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--line);
+}
+
+/* Numbered section markers give the dossier a procedural rhythm. */
+.case-section > h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-xl);
+  letter-spacing: -0.02em;
+}
+
+.case-section > h2::before {
+  content: attr(data-index);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--signal);
+  border: 1px solid var(--signal-edge);
+  background: var(--signal-wash);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+}
+
+.case-section p {
+  max-width: 74ch;
+  color: var(--ink-secondary);
+  line-height: 1.7;
+}
+
+.case-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.case-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  color: var(--ink-secondary);
+}
+
+.case-list li > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--signal);
+}
+
+.journey-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.journey-step {
+  position: relative;
+  display: flex;
+  gap: var(--space-4);
+  padding: 0 0 var(--space-5) var(--space-2);
+}
+
+.journey-step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--space-2) + 13px);
+  top: 30px;
+  bottom: 0;
+  width: 1px;
+  background: var(--line);
+}
+
+.journey-num {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 27px;
+  height: 27px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--signal-edge);
+  background: var(--panel);
+  color: var(--signal);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+}
+
+.journey-step h3 {
+  font-size: var(--text-md);
+  margin-bottom: var(--space-1);
+}
+
+.journey-step p {
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+
+.feature-grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr));
+}
+
+.feature-card {
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--signal-edge);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  transition:
+    border-color var(--duration-fast) var(--ease),
+    background var(--duration-fast) var(--ease);
+}
+
+.feature-card:hover {
+  background: var(--panel-raised);
+  border-left-color: var(--signal);
+}
+
+.feature-card h3 {
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-2);
+}
+
+.feature-card h3 a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.feature-card h3 a:hover {
+  color: var(--signal);
+}
+
+.feature-card p {
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+
+.tech-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.tech-pill {
+  padding: 3px var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel-sunken);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.05em;
+  color: var(--ink-secondary);
+}
+
+.attribution {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .case-hero {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .case-hero h1 {
+    font-size: var(--text-2xl);
+  }
+}
+
+/* ==========================================================================
+ * Not found
+ * ======================================================================== */
+
+.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-9) var(--space-5);
+  text-align: center;
+}
