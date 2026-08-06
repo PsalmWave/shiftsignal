@@ -8,3 +8,6 @@ coverage
 .vscode/*
 !.vscode/extensions.json
 *.tsbuildinfo
+
+.vercel
+.env*
